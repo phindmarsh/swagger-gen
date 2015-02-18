@@ -1,0 +1,51 @@
+#!/usr/bin/env php
+<?php
+
+use Symfony\Component\Yaml\Yaml;
+use Wave\Swagger\Generator\FromRoutes;
+use Wave\Swagger\Generator\Validator;
+
+if(!file_exists('bootstrap.php'))
+    sg_error("This file should be run from the application root");
+
+
+$formats = array('json', 'yml', 'php');
+$options = getopt('', array('format::'));
+
+if(!isset($options['format']))
+    $options['format'] = 'yml';
+
+if(!in_array($options['format'], $formats))
+    sg_error(sprintf("Unknown output format [%s], accepts: [%s]", $options['format'], implode(', ', $formats)));
+
+
+require 'bootstrap.php';
+
+$paths = \Wave\Config::get('wave')->path;
+
+$bla = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
+$schema = $bla->generateSchema();
+
+$validation_schema = __DIR__ . '/../lib/swagger-2.0.json';
+$validator = new Validator($validation_schema);
+$validator->validate(json_encode($schema));
+
+switch($options['format']){
+    case 'json':
+        echo json_encode($schema);
+        break;
+    case 'yml':
+        echo Yaml::dump($schema, PHP_INT_MAX);
+        break;
+    case 'php':
+        echo var_export($schema);
+        break;
+}
+
+echo "\n";
+exit;
+
+function sg_error($message){
+    fwrite(STDERR, "\033[31m{$message}\033[0m\n");
+    exit(1);
+}

@@ -1,0 +1,15 @@
+{
+  "name": "wave-framework/swagger-gen",
+  "description": "Generates a swagger spec file from a wave app",
+
+  "require": {
+      "justinrainbow/json-schema": "~1.3"
+  },
+
+  "bin": ["bin/swagger-gen"],
+
+  "autoload": {
+    "psr-4": { "Wave\\Swagger\\Generator\\": "src/" }
+  }
+
+}
