@@ -28,7 +28,13 @@ $schema = $bla->generateSchema();
 
 $validation_schema = __DIR__ . '/../lib/swagger-2.0.json';
 $validator = new Validator($validation_schema);
-$validator->validate(json_encode($schema));
+$response = $validator->validate(json_encode($schema));
+
+if($response !== true){
+    sg_error("Failed to validate against swagger schema definition", -1);
+    print_r($response);
+    exit(1);
+}
 
 switch($options['format']){
     case 'json':
@@ -45,7 +51,8 @@ switch($options['format']){
 echo "\n";
 exit;
 
-function sg_error($message){
+function sg_error($message, $exit = 1){
     fwrite(STDERR, "\033[31m{$message}\033[0m\n");
-    exit(1);
+    if($exit >= 0)
+        exit($exit);
 }
