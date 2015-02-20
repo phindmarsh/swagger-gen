@@ -2,16 +2,7 @@
   "name": "wave-framework/swagger-gen",
   "description": "Generates a swagger spec file from a wave app",
 
-  "require": {
-      "justinrainbow/json-schema": "dev-fix-93@dev"
-  },
-
-  "repositories": [
-      {
-          "type": "vcs",
-          "url": "https://github.com/co3k/json-schema"
-      }
-  ],
+  "require": {},
 
   "bin": ["bin/swagger-gen"],
 

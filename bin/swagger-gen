@@ -26,16 +26,6 @@ $paths = \Wave\Config::get('wave')->path;
 $bla = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
 $schema = $bla->generateSchema();
 
-$validation_schema = __DIR__ . '/../lib/swagger-2.0.json';
-$validator = new Validator($validation_schema);
-$response = $validator->validate(json_encode($schema));
-
-if($response !== true){
-    sg_error("Failed to validate against swagger schema definition", -1);
-    print_r($response);
-    exit(1);
-}
-
 switch($options['format']){
     case 'json':
         echo json_encode($schema);
