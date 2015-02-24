@@ -24,22 +24,37 @@ require 'bootstrap.php';
 $paths = \Wave\Config::get('wave')->path;
 
 $bla = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
-$schema = $bla->generateSchema();
+$output = $bla->generateSchema();
 
-switch($options['format']){
-    case 'json':
-        echo json_encode($schema);
-        break;
-    case 'yml':
-        echo Yaml::dump($schema, PHP_INT_MAX);
-        break;
-    case 'php':
-        echo var_export($schema);
-        break;
+$json_url = "http://json-schema.org/draft-04/schema#";
+$json_schema = json_decode(file_get_contents(__DIR__ .'/../lib/json-schema-draft-04.json'));
+$swagger_url = 'http://swagger.io/v2/schema.json#';
+$swagger_schema = json_decode(file_get_contents(__DIR__ . '/../lib/swagger-2.0.json'));
+
+$statham = new \Wave\Swagger\Generator\Statham\Statham();
+$statham->setRemoteReference($json_url, $json_schema);
+$statham->setRemoteReference($swagger_url, $swagger_schema);
+
+if(!$statham->validate(json_decode(json_encode($output)), $swagger_url)){
+    fwrite(STDERR, json_encode($statham->report->errors, JSON_PRETTY_PRINT));
+    exit(2);
 }
+else {
+    switch($options['format']){
+        case 'json':
+            echo json_encode($output);
+            break;
+        case 'yml':
+            echo Yaml::dump($output, PHP_INT_MAX);
+            break;
+        case 'php':
+            echo var_export($output);
+            break;
+    }
 
-echo "\n";
-exit;
+    echo "\n";
+    exit;
+}
 
 function sg_error($message, $exit = 1){
     fwrite(STDERR, "\033[31m{$message}\033[0m\n");
