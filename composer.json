@@ -3,7 +3,7 @@
   "description": "Generates a swagger spec file from a wave app",
 
   "require": {
-      "phindmarsh/statham": "~1.0.*@dev"
+      "phindmarsh/statham": "1.0.*@dev"
   },
 
   "bin": ["bin/swagger-gen"],

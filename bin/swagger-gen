@@ -26,8 +26,6 @@ $paths = \Wave\Config::get('wave')->path;
 $bla = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
 $output = $bla->generateSchema();
 
-$output['paths'] = 'dadas';
-
 $json_url = "http://json-schema.org/draft-04/schema#";
 $json_schema = json_decode(file_get_contents(__DIR__ .'/../lib/json-schema-draft-04.json'));
 $swagger_url = 'http://swagger.io/v2/schema.json#';
