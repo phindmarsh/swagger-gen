@@ -2,7 +2,9 @@
   "name": "wave-framework/swagger-gen",
   "description": "Generates a swagger spec file from a wave app",
 
-  "require": {},
+  "require": {
+      "phindmarsh/statham": "~1.0.*@dev"
+  },
 
   "bin": ["bin/swagger-gen"],
 

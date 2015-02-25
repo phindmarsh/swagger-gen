@@ -26,17 +26,19 @@ $paths = \Wave\Config::get('wave')->path;
 $bla = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
 $output = $bla->generateSchema();
 
+$output['paths'] = 'dadas';
+
 $json_url = "http://json-schema.org/draft-04/schema#";
 $json_schema = json_decode(file_get_contents(__DIR__ .'/../lib/json-schema-draft-04.json'));
 $swagger_url = 'http://swagger.io/v2/schema.json#';
 $swagger_schema = json_decode(file_get_contents(__DIR__ . '/../lib/swagger-2.0.json'));
 
-$statham = new \Wave\Swagger\Generator\Statham\Statham();
+$statham = new \Statham\Statham();
 $statham->setRemoteReference($json_url, $json_schema);
 $statham->setRemoteReference($swagger_url, $swagger_schema);
 
 if(!$statham->validate(json_decode(json_encode($output)), $swagger_url)){
-    fwrite(STDERR, json_encode($statham->report->errors, JSON_PRETTY_PRINT));
+    fwrite(STDERR, json_encode($statham->report->errors, JSON_PRETTY_PRINT) . "\n");
     exit(2);
 }
 else {
