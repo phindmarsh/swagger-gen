@@ -41,14 +41,30 @@ class Swagger extends Output {
 
     private function buildOperation(Operation $operation){
 
+        static $allowed_keys = [
+            'description'
+        ];
+
         $output = [
             'x-class' => $operation->class,
             'x-function' => $operation->function,
-            'description' => $operation->description,
-            'parameters' => []
+            'responses' => [
+                'default' => [
+                    'description' => 'The default response'
+                ]
+            ]
         ];
 
+        foreach($operation as $key => $value){
+            if(isset($operation->$key) && in_array($key, $allowed_keys))
+                $output[$key] = $value;
+        }
+
         foreach($operation->params as $in => $params){
+
+            if(!isset($output['parameters']))
+                $output['parameters'] = [];
+
             if($in === Parameter::IN_BODY){
                 $output['parameters'][] = $this->buildBodyParameter($params);
             }
