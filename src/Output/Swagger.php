@@ -86,17 +86,22 @@ class Swagger extends Output {
     private function buildBodyParameter(array $parameters){
 
         $schema = [
-            'type' => 'object',
-            'required' => [],
-            'properties' => []
+            'type' => 'object'
         ];
 
         foreach($parameters as $parameter){
             $built = $this->buildNonBodyParameter($parameter);
-            if(isset($built['required']) && $built['required'])
+            if(isset($built['required']) && $built['required']) {
+                if(!isset($schema['required']))
+                    $schema['required'] = [];
+
                 $schema['required'][] = $parameter->name;
+            }
 
             unset($built['name'], $built['in'], $built['required']);
+
+            if(!isset($schema['properties']))
+                $schema['properties'] = [];
 
             $schema['properties'][$parameter->name] = $built;
         }
@@ -112,7 +117,7 @@ class Swagger extends Output {
     private function buildNonBodyParameter(Parameter $parameter){
 
         static $allowed_keys = [
-            'name', 'in', 'required', 'type'
+            'name', 'in', 'required', 'type', 'pattern'
         ];
 
         $output = [];
@@ -123,6 +128,12 @@ class Swagger extends Output {
             else if($key[0] !== '_'){
                 $output[self::VENDOR_EXTENSION_PREFIX . $key] = $value;
             }
+        }
+
+        if($output['type'] === 'array' && !isset($output['items'])){
+            $output['items'] = [
+                'type' => 'string'
+            ];
         }
 
 

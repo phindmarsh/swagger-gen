@@ -76,6 +76,7 @@ class FromRoutes extends Parser {
                     'function' => $function
                 ]);
 
+
                 foreach($action->getAnnotations() as $key => $annotations){
                     foreach($annotations as $annotation){
                         $this->applyAnnotation($key, $annotation, $operation, $in_hint);
@@ -165,9 +166,9 @@ class FromRoutes extends Parser {
                 'name' => $key,
                 'in' => Parameter::IN_GUESS,
                 '_in' => $parameter_in_hint,
-                'required' => isset($val['required']) && is_bool($val['required']) ? $val['required'] : false
             ];
-            $this->convertType(isset($val['type']) ? $val['type'] : 'string', $parameter);
+
+            $parameter = array_replace($parameter, $this->parseSchema($val));
 
             if (isset($schema['aliases'][$key])) {
                 $parameter['alias'] = $parameter['name'];
@@ -181,6 +182,28 @@ class FromRoutes extends Parser {
         }
 
         return $parameters;
+    }
+
+    private function parseSchema($schema){
+
+        $output = [
+            'required' => isset($schema['required']) && is_bool($schema['required']) ? $schema['required'] : false
+        ];
+
+        $this->convertType(isset($schema['type']) ? $schema['type'] : 'string', $output);
+
+        if(isset($schema['map'])){
+            $output['items'] = $this->parseSchema($schema['map']);
+        }
+
+        if(isset($schema['member_of'])){
+            $output['enum'] = $schema['member_of'];
+        }
+
+        if(isset($schema['default']))
+            $output['default'] = $schema['default'];
+
+        return $output;
     }
 
     private function parseParameter($annotation, $parameter_in_hint){
