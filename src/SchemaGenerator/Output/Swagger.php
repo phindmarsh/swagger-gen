@@ -1,24 +1,23 @@
 <?php
 
 
-namespace Wave\Swagger\Generator\Output;
+namespace Wave\SDK\SchemaGenerator\Output;
 
 
-use Wave\Swagger\Generator\Operation;
-use Wave\Swagger\Generator\Parameter;
+use Wave\SDK\SchemaGenerator\Operation;
+use Wave\SDK\SchemaGenerator\Parameter;
 
 class Swagger extends Output {
 
+    const SWAGGER_VERSION = '2.0';
     const VENDOR_EXTENSION_PREFIX = 'x-';
 
-    public function generate(){
+    public function generate(array $args = []){
+        $args = array_merge(self::$defaults, $args);
 
         $output = [
-            'swagger' => '2.0',
-            'info' => [
-                'title' => 'An API description',
-                'version' => '1.0.0'
-            ],
+            'swagger' => self::SWAGGER_VERSION,
+            'info' => $this->buildInfo($args),
             'paths' => []
         ];
 
@@ -37,6 +36,27 @@ class Swagger extends Output {
         }
 
         return $output;
+    }
+
+    private function buildInfo(array $args){
+
+        static $keys = [
+            'title',
+            'description',
+            'version'
+        ];
+
+        $info = [];
+        foreach($keys as $key){
+            if(isset($args[$key]) && !empty($args[$key])){
+                $info[$key] = $args[$key];
+            }
+        }
+
+        if(isset($args['name']))
+            $info['x-name'] = $args['name'];
+
+        return $info;
     }
 
     private function buildOperation(Operation $operation){

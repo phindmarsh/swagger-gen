@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Wave\Swagger\Generator;
+namespace Wave\SDK\SchemaGenerator;
 
 
 abstract class AbstractGenerator {

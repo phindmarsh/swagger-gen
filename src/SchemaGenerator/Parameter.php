@@ -1,6 +1,6 @@
 <?php
 
-namespace Wave\Swagger\Generator;
+namespace Wave\SDK\SchemaGenerator;
 
 class Parameter extends Definition {
 

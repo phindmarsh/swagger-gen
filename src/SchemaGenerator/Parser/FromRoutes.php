@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Wave\Swagger\Generator\Parser;
+namespace Wave\SDK\SchemaGenerator\Parser;
 
 
 use Symfony\Component\Yaml\Yaml;
@@ -10,8 +10,8 @@ use Wave\Config;
 use Wave\Reflector;
 use Wave\Router\Action;
 use Wave\Router\Generator;
-use Wave\Swagger\Generator\Operation;
-use Wave\Swagger\Generator\Parameter;
+use Wave\SDK\SchemaGenerator\Operation;
+use Wave\SDK\SchemaGenerator\Parameter;
 use Wave\Validator;
 
 class FromRoutes extends Parser {

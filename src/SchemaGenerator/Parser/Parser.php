@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Wave\Swagger\Generator\Parser;
+namespace Wave\SDK\SchemaGenerator\Parser;
 
 
 abstract class Parser {
