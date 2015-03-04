@@ -1,0 +1,42 @@
+#!/usr/bin/env php
+<?php
+
+
+use Wave\SDK\ModelGenerator\Generator;
+use Wave\SDK\ModelGenerator\Input\Swagger;
+
+ini_set('display_errors', '1');
+error_reporting(E_ALL | E_STRICT);
+
+if(!file_exists('bootstrap.php'))
+    sg_error("This file should be run from the application root");
+
+$options = getopt('', array('verbose'));
+
+require 'bootstrap.php';
+
+$input = new Swagger();
+$input->addSchema(SYS_ROOT . 'swagger.json');
+$generator = new Generator($input);
+
+$written_files = $generator->generate(SYS_ROOT . 'generated', '\\Blotter\\SDK\\Consumers', '\\Blotter\\SDK\\Consumer');
+
+if(empty($written_files)){
+    fwrite(STDERR, "WARNING - No files written to disk, this is probably an issue\n");
+}
+
+foreach($written_files as $schema => $files){
+    fwrite(STDOUT, sprintf("Wrote %d files for [%s]\n", count($files), $schema));
+    if(isset($options['verbose'])){
+        fwrite(STDOUT, " - " . implode("\n - ", $files) . "\n");
+    }
+}
+
+exit(0);
+
+
+function sg_error($message, $exit = 1){
+    fwrite(STDERR, "\033[31m{$message}\033[0m\n");
+    if($exit >= 0)
+        exit($exit);
+}

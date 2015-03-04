@@ -1,16 +1,16 @@
 <?php
 
 
-namespace Wave\Swagger\Generator;
+namespace Wave\SDK\SchemaGenerator;
 
 
 abstract class AbstractGenerator {
 
-    abstract protected function getPathItemObjects();
+    abstract protected function getOperations();
 
     public function generateSchema(){
 
-        $paths = $this->getPathItemObjects();
+        $paths = $this->getOperations();
 
         return array(
             'swagger' => '2.0',

@@ -1,25 +1,31 @@
 <?php
 
 
-namespace Wave\Swagger\Generator;
+namespace Wave\SDK\SchemaGenerator\Parser;
 
 
 use Symfony\Component\Yaml\Yaml;
 use Wave\Annotation;
 use Wave\Config;
+use Wave\Reflector;
 use Wave\Router\Action;
-use Wave\Swagger\Generator\Spec\Operation;
-use Wave\Swagger\Generator\Spec\Parameter;
-use Wave\Swagger\Generator\Spec\ParameterBag;
+use Wave\Router\Generator;
+use Wave\SDK\SchemaGenerator\Operation;
+use Wave\SDK\SchemaGenerator\Parameter;
 use Wave\Validator;
 
-class FromRoutes extends AbstractGenerator {
+class FromRoutes extends Parser {
 
     const INCLUDE_SCHEMA_KEY = 'x-include-schema';
 
     static $type_translations = array(
         'int' => 'integer',
         'string' => '%s'
+    );
+
+    static $allowed_methods = array(
+        'get', 'post', 'put', 'delete',
+        'options', 'head', 'patch'
     );
 
     protected $controller_dir;
@@ -33,11 +39,11 @@ class FromRoutes extends AbstractGenerator {
     }
 
 
-    protected function getPathItemObjects() {
+    public function getOperations() {
 
-        $reflector = new \Wave\Reflector($this->controller_dir);
+        $reflector = new Reflector($this->controller_dir);
         $reflected_options = $reflector->execute();
-        $routes = \Wave\Router\Generator::buildRoutes($reflected_options);
+        $routes = Generator::buildRoutes($reflected_options);
 
         /**
          * @var string $callable
@@ -55,22 +61,21 @@ class FromRoutes extends AbstractGenerator {
 
             foreach($action->getRoutes() as $route){
 
-                preg_match_all('/([^\/]+)+/i', $route, $matches);
-                $method = strtolower(array_shift($matches[0]));
+                $matches = preg_split('/(?<!<)\/(?!>)/', $route);
+                $method = strtolower(array_shift($matches));
+
+                if(!in_array($method, self::$allowed_methods)){
+                    continue;
+                }
 
                 $in_hint = $this->getParameterInHint($method);
 
-                $operation = new Operation(array(
-                    'x-class' => $class,
-                    'x-function' => $function
-                ));
-                $operation->tags->add($class);
+                $operation = new Operation([
+                    'method' => $method,
+                    'class' => $class,
+                    'function' => $function
+                ]);
 
-                if($action->hasAnnotation('include')){
-                    foreach($action->getAnnotation('include') as $include){
-                        $operation->merge($this->parseIncludeFile($include->getValue(), $in_hint));
-                    }
-                }
 
                 foreach($action->getAnnotations() as $key => $annotations){
                     foreach($annotations as $annotation){
@@ -78,25 +83,28 @@ class FromRoutes extends AbstractGenerator {
                     }
                 }
 
-                foreach ($matches[0] as $i => $part) {
-                    if (preg_match('/<(?<type>\w+)>(?<name>\w+)/i', $part, $match)) {
-                        $matches[0][$i] = sprintf('{%s}', $match['name']);
+                foreach ($matches as $i => $part) {
+                    if (preg_match('/<(?<type>.+?)>(?<name>\w+)/i', $part, $match)) {
+                        $matches[$i] = sprintf('{%s}', $match['name']);
                         $parameter = array(
                             'name' => $match['name'],
                             'in' => Parameter::IN_PATH,
                             'required' => true
                         );
                         $this->convertType($match['type'], $parameter);
-                        $operation->parameters->add(Parameter::factory($parameter));
+                        $operation->addParameter(new Parameter($parameter));
                     }
                 }
 
-                $route = '/' . implode('/', $matches[0]);
+                $route = '/' . implode('/', $matches);
+
+                $operation->path = $route;
+                $operation->resolveParameterPlacement();
 
                 if(!array_key_exists($route, $operations))
                     $operations[$route] = array();
 
-                $operations[$route][$method] = $operation->toArray();
+                $operations[$route][$method] = $operation;
             }
         }
 
@@ -128,11 +136,12 @@ class FromRoutes extends AbstractGenerator {
                 $operation->$key->merge(array_map(function($v){ return trim($v); }, explode(',', $annotation->getValue())));
                 break;
             case 'parameter':
-                $operation->parameters->add($this->parseParameter($annotation->getValue(), $in_hint));
+                $operation->addParameter($this->parseParameter($annotation->getValue(), $in_hint));
                 break;
-            case 'parameters':
+            case 'params':
             case 'validate':
-                $operation->parameters->merge($this->resolveSchema($annotation->getValue(), $in_hint));
+                $operation->mergeParameters($this->resolveSchema($annotation->getValue(), $in_hint));
+
                 break;
 
         }
@@ -142,7 +151,7 @@ class FromRoutes extends AbstractGenerator {
     /**
      * @param $schema
      * @param string $parameter_in_hint
-     * @return ParameterBag
+     * @return array[]
      */
     private function resolveSchema($schema, $parameter_in_hint){
         $schema_file = sprintf('%s%s.php', $this->schema_dir, $schema);
@@ -150,30 +159,51 @@ class FromRoutes extends AbstractGenerator {
             throw new \RuntimeException("Could not resolve validation schema {$schema}, looked in {$schema_file}");
 
         $schema = require $schema_file;
-        $bag = new ParameterBag();
+        $parameters = [];
 
         foreach ($schema['fields'] as $key => $val) {
-            $parameter = array(
+            $parameter = [
                 'name' => $key,
-                'required' => isset($val['required']) && is_bool($val['required']) ? $val['required'] : false
-            );
-            $this->convertType(isset($val['type']) ? $val['type'] : 'string', $parameter);
+                'in' => Parameter::IN_GUESS,
+                '_in' => $parameter_in_hint,
+            ];
 
+            $parameter = array_replace($parameter, $this->parseSchema($val));
 
             if (isset($schema['aliases'][$key])) {
-                $parameter['x-alias'] = $parameter['name'];
-                $parameter['name'] = $schema['aliases'][$key];
+                $parameter['alias'] = $parameter['name'];
+                if(is_array($schema['aliases'][$key]))
+                    $parameter['name'] = $schema['aliases'][$key][0];
+                else
+                    $parameter['name'] = $schema['aliases'][$key];
             }
 
-            // if the schema declares an overrides array then use it as well
-            if(isset($schema['swagger'][$key])){
-                $parameter = array_merge($parameter, $schema['swagger'][$key]);
-            }
-
-            $bag->add(Parameter::factory($parameter, $parameter_in_hint));
+            $parameters[] = new Parameter($parameter);
         }
 
-        return $bag;
+        return $parameters;
+    }
+
+    private function parseSchema($schema){
+
+        $output = [
+            'required' => isset($schema['required']) && is_bool($schema['required']) ? $schema['required'] : false
+        ];
+
+        $this->convertType(isset($schema['type']) ? $schema['type'] : 'string', $output);
+
+        if(isset($schema['map'])){
+            $output['items'] = $this->parseSchema($schema['map']);
+        }
+
+        if(isset($schema['member_of'])){
+            $output['enum'] = $schema['member_of'];
+        }
+
+        if(isset($schema['default']))
+            $output['default'] = $schema['default'];
+
+        return $output;
     }
 
     private function parseParameter($annotation, $parameter_in_hint){
@@ -200,7 +230,7 @@ class FromRoutes extends AbstractGenerator {
         if(!empty($description))
             $data['description'] = $description;
 
-        return Parameter::factory($data, $parameter_in_hint);
+        return new Parameter($data);
 
     }
 
@@ -211,32 +241,32 @@ class FromRoutes extends AbstractGenerator {
 
         $contents = Yaml::parse(file_get_contents($include_file));
 
-        $bag = new ParameterBag();
+        $operation = new Operation();
         // check for x-includes and things
         if(array_key_exists('parameters', $contents)){
             foreach($contents['parameters'] as $i => $parameter){
                 if(array_key_exists(static::INCLUDE_SCHEMA_KEY, $parameter)){
-                    $bag->merge($this->resolveSchema($parameter[static::INCLUDE_SCHEMA_KEY], $parameter_in_hint));
+                    $operation->mergeParameters($this->resolveSchema($parameter[static::INCLUDE_SCHEMA_KEY], $parameter_in_hint));
                 }
                 else {
-                    $bag->add(Parameter::factory($parameter, $parameter_in_hint));
+                    $operation->addParameter(new Parameter($parameter));
                 }
             }
         }
-
-        $operation = new Operation($contents);
-        $operation->setParameters($bag);
 
         return $operation;
     }
 
     private function getParameterInHint($method){
         switch($method){
+            case 'head':
+            case 'options':
             case 'delete':
             case 'get':
                 return Parameter::IN_QUERY;
             case 'post':
             case 'put':
+            case 'patch':
             default:
                 return Parameter::IN_BODY;
         }
@@ -252,15 +282,27 @@ class FromRoutes extends AbstractGenerator {
                 $parameter['format'] = 'float';
                 return;
             case 'bool':
+            case 'boolean':
                 $parameter['type'] = 'boolean';
                 return;
             case 'string':
             case 'email':
                 $parameter['type'] = 'string';
                 return;
+            case 'array':
+                $parameter['type'] = 'array';
+                return;
             default:
-                trigger_error("Unknown type [{$type}]", E_USER_NOTICE);
-                $parameter['type'] = $type;
+                // regex patterns
+                if($type[0] == '/'){
+                    $parameter['type'] = 'string';
+                    $parameter['pattern'] = substr($type, 1, -1);
+                }
+                else {
+                    trigger_error("Unknown type [{$type}]", E_USER_NOTICE);
+                    $parameter['type'] = $type;
+                }
+
                 return;
         }
     }

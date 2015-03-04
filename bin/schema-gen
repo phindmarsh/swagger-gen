@@ -2,29 +2,35 @@
 <?php
 
 use Symfony\Component\Yaml\Yaml;
-use Wave\Swagger\Generator\FromRoutes;
-use Wave\Swagger\Generator\Validator;
+use Wave\SDK\SchemaGenerator\Output\Swagger;
+use Wave\SDK\SchemaGenerator\Parser\FromRoutes;
+
+ini_set('display_errors', '1');
+error_reporting(E_ALL | E_STRICT);
 
 if(!file_exists('bootstrap.php'))
     sg_error("This file should be run from the application root");
 
 
 $formats = array('json', 'yml', 'php');
-$options = getopt('', array('format::'));
+$options = getopt('', array('format::', 'dump-on-error'));
 
 if(!isset($options['format']))
-    $options['format'] = 'yml';
+    $options['format'] = 'json';
 
 if(!in_array($options['format'], $formats))
     sg_error(sprintf("Unknown output format [%s], accepts: [%s]", $options['format'], implode(', ', $formats)));
-
 
 require 'bootstrap.php';
 
 $paths = \Wave\Config::get('wave')->path;
 
-$bla = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
-$output = $bla->generateSchema();
+$parser = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
+$generator = new Swagger($parser);
+
+$output = $generator->generate([
+    'name' => 'players',
+]);
 
 $json_url = "http://json-schema.org/draft-04/schema#";
 $json_schema = json_decode(file_get_contents(__DIR__ .'/../lib/json-schema-draft-04.json'));
@@ -37,24 +43,25 @@ $statham->setRemoteReference($swagger_url, $swagger_schema);
 
 if(!$statham->validate(json_decode(json_encode($output)), $swagger_url)){
     fwrite(STDERR, json_encode($statham->report->errors, JSON_PRETTY_PRINT) . "\n");
-    exit(2);
+    if(!array_key_exists('dump-on-error', $options))
+        exit(2);
 }
-else {
-    switch($options['format']){
-        case 'json':
-            echo json_encode($output);
-            break;
-        case 'yml':
-            echo Yaml::dump($output, PHP_INT_MAX);
-            break;
-        case 'php':
-            echo var_export($output);
-            break;
-    }
 
-    echo "\n";
-    exit;
+switch($options['format']){
+    case 'json':
+        echo json_encode($output, JSON_PRETTY_PRINT);
+        break;
+    case 'yml':
+        echo Yaml::dump($output, PHP_INT_MAX);
+        break;
+    case 'php':
+        echo var_export($output);
+        break;
 }
+
+echo "\n";
+exit;
+
 
 function sg_error($message, $exit = 1){
     fwrite(STDERR, "\033[31m{$message}\033[0m\n");
