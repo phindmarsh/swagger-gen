@@ -9,7 +9,7 @@
   "bin": ["bin/schema-gen", "bin/model-gen"],
 
   "autoload": {
-    "psr-4": { "Wave\\SDK": "src/" }
+    "psr-4": { "Wave\\SDK\\": "src/" }
   }
 
 }
