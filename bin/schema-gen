@@ -28,9 +28,21 @@ $paths = \Wave\Config::get('wave')->path;
 $parser = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
 $generator = new Swagger($parser);
 
-$output = $generator->generate([
-    'name' => 'players',
-]);
+$meta_info = [];
+if(file_exists('composer.json')){
+    $composer = json_decode(file_get_contents('composer.json'));
+    $meta_info = [
+        'title' => $composer->name,
+        'description' => $composer->description,
+    ];
+}
+
+if('' !== $git_path = trim(shell_exec('which git'))){
+    $meta_info['version'] = trim(shell_exec(sprintf('%s rev-parse --verify --short HEAD', $git_path)));
+}
+
+
+$output = $generator->generate($meta_info);
 
 $json_url = "http://json-schema.org/draft-04/schema#";
 $json_schema = json_decode(file_get_contents(__DIR__ .'/../lib/json-schema-draft-04.json'));
