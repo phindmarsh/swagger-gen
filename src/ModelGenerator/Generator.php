@@ -3,16 +3,13 @@
 
 namespace Wave\SDK\ModelGenerator;
 
-
-use Wave\SDK\ModelGenerator\Input\Input;
-
 class Generator {
 
     private static $defaults = [];
 
     private $twig;
 
-    public function __construct(Input $input, array $args = []) {
+    public function __construct(Schema $input, array $args = []) {
 
         $this->input = $input;
         $this->args = array_merge(self::$defaults, $args);

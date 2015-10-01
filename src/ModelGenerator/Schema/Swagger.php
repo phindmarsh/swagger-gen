@@ -1,35 +1,29 @@
 <?php
 
 
-namespace Wave\SDK\ModelGenerator\Input;
+namespace Wave\SDK\ModelGenerator\Schema;
 
+use Wave\SDK\ModelGenerator\Loader;
+use Wave\SDK\ModelGenerator\Schema;
 
-class Swagger extends Input {
+class Swagger extends Schema {
 
+    /**
+     * Add a schema by name to be used during generation
+     * @param $name
+     * @param Loader $loader
+     */
+    public function loadSchema($name, Loader $loader) {
 
-
-    public function addSchema($name, $schema = null){
-
-        if($schema === null){
-            if(is_string($name) && is_readable($name)){
-                $schema = json_decode(file_get_contents($name), true);
-                if(json_last_error() !== JSON_ERROR_NONE){
-                    $message = function_exists('json_last_error_msg')
-                        ? json_last_error_msg()
-                        : 'Error code: ' . json_last_error();
-                    throw new \InvalidArgumentException("Could not parse schema: " . $message);
-                }
-            }
-            else if (is_object($name)) {
-                $schema = $name;
-            }
-            else {
-                throw new \InvalidArgumentException("Can not determine name from passed schema");
-            }
-            $name = $schema['info']['x-name'];
+        $schema = json_decode($loader->getContent(), true);
+        if(json_last_error() !== JSON_ERROR_NONE){
+            $message = function_exists('json_last_error_msg')
+                ? json_last_error_msg()
+                : 'Error code: ' . json_last_error();
+            throw new \InvalidArgumentException("Could not parse schema: " . $message);
         }
 
-        parent::addSchema($name, $schema);
+        $this->schemas[$name] = $schema;
 
     }
 
