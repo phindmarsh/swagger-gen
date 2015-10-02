@@ -38,7 +38,7 @@ class Generator {
         foreach($schemas as $schema){
 
             $namespace = $base_namespace . '\\' . ucfirst($schema);
-            $directory = $output_directory . str_replace('\\', '/', $namespace) . DS;
+            $directory = $output_directory . ucfirst($schema) . DS;
 
             $files = $this->generateModelsFor($schema, $directory, $namespace, $base_model_class);
             $files_written[$schema] = $files;
