@@ -1,9 +1,10 @@
 #!/usr/bin/env php
 <?php
 
-use Symfony\Component\Yaml\Yaml;
+use Wave\Config;
 use Wave\SDK\SchemaGenerator\Output\Swagger;
 use Wave\SDK\SchemaGenerator\Parser\FromRoutes;
+use Symfony\Component\Yaml\Yaml;
 
 ini_set('display_errors', '1');
 error_reporting(E_ALL | E_STRICT);
@@ -23,7 +24,7 @@ if(!in_array($options['format'], $formats))
 
 require 'bootstrap.php';
 
-$paths = \Wave\Config::get('wave')->path;
+$paths = Config::get('wave')->path;
 
 $parser = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/');
 $generator = new Swagger($parser);
@@ -33,12 +34,17 @@ if(file_exists('composer.json')){
     $composer = json_decode(file_get_contents('composer.json'));
     $meta_info = [
         'title' => $composer->name,
-        'description' => $composer->description,
+        'description' => $composer->description
     ];
 }
 
 if('' !== $git_path = trim(shell_exec('which git'))){
     $meta_info['version'] = trim(shell_exec(sprintf('%s rev-parse --verify --short HEAD', $git_path)));
+}
+
+//If there's an AMQP routing key
+if(Config::get('app')->offsetExists('amqp')){
+    $meta_info['routing_key'] = Config::get('app')->amqp->routing_key;
 }
 
 
