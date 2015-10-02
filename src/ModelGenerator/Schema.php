@@ -1,9 +1,17 @@
 <?php
+/**
+ *
+ * @file       Format.php
+ * @package    sdk-generator
+ * @author     Michael Calcinai <michael@calcin.ai>
+ * @link
+ *
+ */
 
-namespace Wave\SDK\ModelGenerator\Input;
+namespace Wave\SDK\ModelGenerator;
 
 
-abstract class Input {
+abstract class Schema {
 
 
     protected $schemas = [];
@@ -11,19 +19,10 @@ abstract class Input {
 
     /**
      * Add a schema by name to be used during generation
-     *
-     * @param $name
-     * @param $schema
+     * @param Loader $loader
+     * @return
      */
-    public function addSchema($name, $schema){
-
-        if(is_string($schema) && file_exists($schema)){
-            $schema = json_decode(file_get_contents($schema), true);
-        }
-
-        $this->schemas[$name] = $schema;
-
-    }
+    abstract public function loadSchema($name, Loader $loader);
 
     /**
      * Return a schema by name

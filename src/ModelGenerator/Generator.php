@@ -3,16 +3,13 @@
 
 namespace Wave\SDK\ModelGenerator;
 
-
-use Wave\SDK\ModelGenerator\Input\Input;
-
 class Generator {
 
     private static $defaults = [];
 
     private $twig;
 
-    public function __construct(Input $input, array $args = []) {
+    public function __construct(Schema $input, array $args = []) {
 
         $this->input = $input;
         $this->args = array_merge(self::$defaults, $args);
@@ -23,8 +20,13 @@ class Generator {
             'debug' => true
         ));
 
-        $this->twig->addFilter(new \Twig_SimpleFilter('var_export', function($arg, $indent = 0){
-            return ltrim(preg_replace('/^([\s]*)/m', str_repeat(' ', $indent) . '$1', var_export($arg, true)));
+        $this->twig->addFilter(new \Twig_SimpleFilter('var_export', function($arg, $indent = 0, $indent_string = '    '){
+            $output = var_export($arg, true);
+
+            $output = str_replace('  ', $indent_string, $output);
+
+            return ltrim(preg_replace('/^/m', str_repeat($indent_string, $indent), $output));
+
         }));
         $this->twig->addFilter(new \Twig_SimpleFilter('print_r', 'print_r'));
         $this->twig->addFilter(new \Twig_SimpleFilter('explode', function($a, $d){ return explode($d, $a); }));
@@ -41,7 +43,7 @@ class Generator {
         foreach($schemas as $schema){
 
             $namespace = $base_namespace . '\\' . ucfirst($schema);
-            $directory = $output_directory . str_replace('\\', '/', $namespace) . DS;
+            $directory = $output_directory . ucfirst($schema) . DS;
 
             $files = $this->generateModelsFor($schema, $directory, $namespace, $base_model_class);
             $files_written[$schema] = $files;
