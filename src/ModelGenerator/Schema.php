@@ -51,5 +51,6 @@ abstract class Schema {
      * @return array
      */
     abstract public function getModels($schema_name);
+    abstract public function getMeta($schema_name);
 
 }

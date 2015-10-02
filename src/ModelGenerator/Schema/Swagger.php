@@ -27,6 +27,20 @@ class Swagger extends Schema {
 
     }
 
+    public function getMeta($schema_name){
+
+        if(!isset($this->schemas[$schema_name]))
+            throw new \InvalidArgumentException("Unknown schema [$schema_name]");
+
+        $schema = $this->schemas[$schema_name];
+
+        $meta = [];
+        foreach($schema['info'] as $key => $val){
+            $meta[preg_replace('/^x-/', '', $key)] = $val;
+        }
+
+        return $meta;
+    }
 
     public function getModels($schema_name){
 

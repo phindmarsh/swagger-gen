@@ -9,7 +9,8 @@
 
 namespace {{ namespace }}\Base;
 
-use HellPizza\StyxSDK\Client\InvalidInputException;
+use HellPizza\RPC\Response;
+use HellPizza\StyxSDK\Client\Exception\InvalidInputException;
 
 abstract class {{ class }} extends {{ base_model }} {
 
@@ -32,7 +33,7 @@ abstract class {{ class }} extends {{ base_model }} {
      * @throws InvalidInputException when required {% if query_params %}$query{% if body_params %} or {% endif %}{% endif %}{% if body_params %}$body{% endif %} params are not present
 {% endif %}
      *
-     * @return mixed|null
+     * @return Response|null
      */
 	public static function {{ operation.function }}({% for param in operation.parameters.path %}${{ param.name }}, {% endfor %}{% if query_params %}array $query = array(){% if body_params %}, {% endif %}{% endif %}{% if body_params %}array $body = array(){% endif %}){
 
@@ -54,7 +55,7 @@ abstract class {{ class }} extends {{ base_model }} {
         $method = '{{ operation.method }}';
         $route = sprintf('{{ operation.path }}'{% if operation.path_replacements is not empty %}, {% endif %}{% for var,index in operation.path_replacements %}${{ var }}{% if not loop.last %}, {% endif %}{% endfor %});
 
-        return self::_request($method, $route, {{ query_params ? '$query' : '[]' }}, {{ body_params ? '$body' : '[]' }});
+        return self::_request('{{ meta['routing-key'] }}', $method, $route, {{ query_params ? '$query' : '[]' }}, {{ body_params ? '$body' : '[]' }});
     }
 
 {% endfor %}

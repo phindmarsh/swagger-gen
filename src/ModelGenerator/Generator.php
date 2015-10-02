@@ -56,6 +56,7 @@ class Generator {
     public function generateModelsFor($schema, $base_directory, $base_namespace, $base_model_class){
 
         $models = $this->input->getModels($schema);
+        $meta = $this->input->getMeta($schema);
         $files_written = [];
 
         foreach($models as $class => $class_data){
@@ -70,10 +71,10 @@ class Generator {
                 $directory = $base_directory . str_replace('\\', '/', $ns) . DS;
             }
 
-
             $template_data = [
                 'base_model' => $base_model_class,
                 'namespace' => $namespace,
+                'meta' => $meta,
                 'class' => $class,
                 'operations' => $class_data['operations']
             ];
