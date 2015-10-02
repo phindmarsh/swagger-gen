@@ -44,9 +44,8 @@ if('' !== $git_path = trim(shell_exec('which git'))){
 
 //If there's an AMQP routing key
 if(Config::get('app')->offsetExists('amqp')){
-    $meta_info['routing_key'] = Config::get('app')->amqp->routing_key;
+    $meta_info['routing-key'] = Config::get('app')->amqp->routing_key;
 }
-
 
 $output = $generator->generate($meta_info);
 

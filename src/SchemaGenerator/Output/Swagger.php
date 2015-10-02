@@ -47,14 +47,14 @@ class Swagger extends Output {
         ];
 
         $info = [];
-        foreach($keys as $key){
-            if(isset($args[$key]) && !empty($args[$key])){
-                $info[$key] = $args[$key];
+
+        foreach($args as $key => $value){
+            if(false !== array_search($key, $keys)){
+                $info[$key] = $value;
+            } else {
+                $info["x-$key"] = $value;
             }
         }
-
-        if(isset($args['name']))
-            $info['x-name'] = $args['name'];
 
         return $info;
     }
