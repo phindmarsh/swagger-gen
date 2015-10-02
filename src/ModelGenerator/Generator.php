@@ -20,8 +20,13 @@ class Generator {
             'debug' => true
         ));
 
-        $this->twig->addFilter(new \Twig_SimpleFilter('var_export', function($arg, $indent = 0){
-            return ltrim(preg_replace('/^([\s]*)/m', str_repeat(' ', $indent) . '$1', var_export($arg, true)));
+        $this->twig->addFilter(new \Twig_SimpleFilter('var_export', function($arg, $indent = 0, $indent_string = '    '){
+            $output = var_export($arg, true);
+
+            $output = str_replace('  ', $indent_string, $output);
+
+            return ltrim(preg_replace('/^/m', str_repeat($indent_string, $indent), $output));
+
         }));
         $this->twig->addFilter(new \Twig_SimpleFilter('print_r', 'print_r'));
         $this->twig->addFilter(new \Twig_SimpleFilter('explode', function($a, $d){ return explode($d, $a); }));

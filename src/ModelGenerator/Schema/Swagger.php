@@ -100,14 +100,13 @@ class Swagger extends Schema {
             if(!isset($method[$parameter['in']])){
                 $method[$parameter['in']] = [];
             }
-
             if($parameter['in'] === 'body'){
                 $this->parseBodyParameter($parameter, $method[$parameter['in']]);
             }
             else {
                 $method[$parameter['in']][] = [
                     'name' => $parameter['name'],
-                    'required' => isset($parameter['required']) ? $parameter['required'] : false,
+                    'required' => isset($parameter['schema']['required']) ? $parameter['schema']['required'] : false,
                     'type' => $parameter['type']
                 ];
             }
@@ -117,7 +116,7 @@ class Swagger extends Schema {
     private function parseBodyParameter($parameter, array &$parameters){
 
         $properties = $parameter['schema']['properties'];
-        $required = isset($parameter['required']) ? $parameter['required'] : [];
+        $required = isset($parameter['schema']['required']) ? $parameter['schema']['required'] : [];
 
         foreach($properties as $name => $property){
             $parameters[] = [
