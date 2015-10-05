@@ -12,6 +12,7 @@ class Swagger extends Output {
     const SWAGGER_VERSION = '2.0';
     const VENDOR_EXTENSION_PREFIX = 'x-';
 
+
     public function generate(array $args = []){
         $args = array_merge(self::$defaults, $args);
 
@@ -35,6 +36,8 @@ class Swagger extends Output {
             }
         }
 
+        $output['definitions'] = $this->parser->getDefinitions();
+
         return $output;
     }
 
@@ -52,7 +55,7 @@ class Swagger extends Output {
             if(false !== array_search($key, $keys)){
                 $info[$key] = $value;
             } else {
-                $info["x-$key"] = $value;
+                $info[self::VENDOR_EXTENSION_PREFIX . $key] = $value;
             }
         }
 
@@ -64,7 +67,7 @@ class Swagger extends Output {
         static $allowed_keys = [
             'description'
         ];
-
+        
         $output = [
             'x-class' => $operation->class,
             'x-function' => $operation->function,
@@ -74,6 +77,10 @@ class Swagger extends Output {
                 ]
             ]
         ];
+
+        if(isset($operation->response)){
+            $output['responses']['default'] = $operation->response;
+        }
 
         foreach($operation as $key => $value){
             if(isset($operation->$key) && in_array($key, $allowed_keys))
