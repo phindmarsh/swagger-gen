@@ -7,6 +7,8 @@ namespace Wave\SDK\SchemaGenerator\Parser;
 use Symfony\Component\Yaml\Yaml;
 use Wave\Annotation;
 use Wave\Config;
+use Wave\DB\Column;
+use Wave\DB\Model;
 use Wave\Reflector;
 use Wave\Router\Action;
 use Wave\Router\Generator;
@@ -31,6 +33,8 @@ class FromRoutes extends Parser {
     protected $controller_dir;
     protected $schema_dir;
     protected $includes_dir;
+
+    protected $definitions = [];
 
     public function __construct($controller_dir, $schema_dir, $includes_dir) {
         $this->controller_dir = $controller_dir;
@@ -141,11 +145,79 @@ class FromRoutes extends Parser {
             case 'params':
             case 'validate':
                 $operation->mergeParameters($this->resolveSchema($annotation->getValue(), $in_hint));
-
                 break;
-
+            case 'response':
+                $operation->$key = $this->parseResponseParameter($annotation->getValue());
         }
 
+    }
+
+
+
+    private function parseResponseParameter($annotation){
+
+        $class = preg_replace('/\[\]$/','', $annotation, 1, $num_replaced);
+
+        $is_array = $num_replaced === 1;
+
+        if(!class_exists($class) || !method_exists($class, '_getFields')){
+            throw new \RuntimeException("{$annotation}, is not a valid response class");
+        }
+
+
+        $fields = $class::_getFields(true);
+        $properties = [];
+
+        foreach($fields as $field_name => $field_data){
+
+            switch($field_data['data_type']){
+                case Column::TYPE_BOOL:
+                    $type = 'boolean';
+                    break;
+                case Column::TYPE_INT:
+                case Column::TYPE_FLOAT:
+                    $type = 'integer';
+                    break;
+                case Column::TYPE_STRING:
+                case Column::TYPE_DATE:
+                case Column::TYPE_TIMESTAMP:
+                    $type = 'string';
+                    break;
+                default:
+                    //Means that it won't be valid anyway
+                    continue 2;
+            }
+
+            $properties[$field_name] = [
+                'type' => $type
+            ];
+        }
+
+        $unqualified_class = substr($class, strrpos($class, '\\') + 1);
+        $ref = sprintf('#/definitions/%s', $unqualified_class);
+
+        $this->definitions[$unqualified_class] = [
+            'type' => 'object',
+            'properties' => $properties
+        ];
+
+        if($is_array){
+            $schema = [
+                'type' => 'array',
+                'items' => [
+                    '$ref' => $ref
+                ]
+            ];
+        } else {
+            $schema = [
+                '$ref' => $ref
+            ];
+        }
+
+        return [
+            'description' => "A $unqualified_class object",
+            'schema' => $schema
+        ];
     }
 
     /**
@@ -234,28 +306,6 @@ class FromRoutes extends Parser {
 
     }
 
-    private function parseIncludeFile($include, $parameter_in_hint) {
-        $include_file = sprintf("%s%s.yml", $this->includes_dir, $include);
-        if(!file_exists($include_file))
-            throw new \RuntimeException("Could not resolve swagger include {$include}, looked in {$include_file}");
-
-        $contents = Yaml::parse(file_get_contents($include_file));
-
-        $operation = new Operation();
-        // check for x-includes and things
-        if(array_key_exists('parameters', $contents)){
-            foreach($contents['parameters'] as $i => $parameter){
-                if(array_key_exists(static::INCLUDE_SCHEMA_KEY, $parameter)){
-                    $operation->mergeParameters($this->resolveSchema($parameter[static::INCLUDE_SCHEMA_KEY], $parameter_in_hint));
-                }
-                else {
-                    $operation->addParameter(new Parameter($parameter));
-                }
-            }
-        }
-
-        return $operation;
-    }
 
     private function getParameterInHint($method){
         switch($method){
@@ -308,5 +358,7 @@ class FromRoutes extends Parser {
     }
 
 
-
+    public function getDefinitions() {
+        return $this->definitions;
+    }
 }
