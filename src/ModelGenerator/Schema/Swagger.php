@@ -17,9 +17,7 @@ class Swagger extends Schema {
 
         $schema = json_decode($loader->getContent(), true);
         if(json_last_error() !== JSON_ERROR_NONE){
-            $message = function_exists('json_last_error_msg')
-                ? json_last_error_msg()
-                : 'Error code: ' . json_last_error();
+            $message = function_exists('json_last_error_msg') ? json_last_error_msg() : 'Error code: ' . json_last_error();
             throw new \InvalidArgumentException("Could not parse schema: " . $message);
         }
 
@@ -27,6 +25,20 @@ class Swagger extends Schema {
 
     }
 
+    public function getMeta($schema_name){
+
+        if(!isset($this->schemas[$schema_name]))
+            throw new \InvalidArgumentException("Unknown schema [$schema_name]");
+
+        $schema = $this->schemas[$schema_name];
+
+        $meta = [];
+        foreach($schema['info'] as $key => $val){
+            $meta[preg_replace('/^x-/', '', $key)] = $val;
+        }
+
+        return $meta;
+    }
 
     public function getModels($schema_name){
 
