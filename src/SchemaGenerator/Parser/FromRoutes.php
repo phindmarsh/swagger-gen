@@ -87,6 +87,7 @@ class FromRoutes extends Parser {
                     }
                 }
 
+
                 foreach ($matches as $i => $part) {
                     if (preg_match('/<(?<type>.+?)>(?<name>\w+)/i', $part, $match)) {
                         $matches[$i] = sprintf('{%s}', $match['name']);
@@ -111,7 +112,8 @@ class FromRoutes extends Parser {
                 $operations[$route][$method] = $operation;
             }
         }
-
+        print_r($operations);
+        print_r($this->definitions);
         return $operations;
 
     }
@@ -147,7 +149,7 @@ class FromRoutes extends Parser {
                 $operation->mergeParameters($this->resolveSchema($annotation->getValue(), $in_hint));
                 break;
             case 'response':
-                $operation->$key = $this->parseResponseParameter($annotation->getValue());
+                $operation->addResponse($this->parseResponseParameter($annotation->getValue()));
         }
 
     }
@@ -156,16 +158,18 @@ class FromRoutes extends Parser {
 
     private function parseResponseParameter($annotation){
 
-        $class = preg_replace('/\[\]$/','', $annotation, 1, $num_replaced);
+        preg_match('/(?<fq_class>(?<ns>[\w\\\\]+)\\\\(?<class>[\w]+))(?<is_array>\[\])?(\s(?<in_var>[\w]+))?$/', $annotation, $matches);
 
-        $is_array = $num_replaced === 1;
+        $is_array = !empty($matches['is_array']);
+        $fq_class = $matches['fq_class'];
+        $class = $matches['class'];
+        $is_in_var = !empty($matches['in_var']);
 
-        if(!class_exists($class) || !method_exists($class, '_getFields')){
+        if(!class_exists($fq_class) || !method_exists($fq_class, '_getFields')){
             throw new \RuntimeException("{$annotation}, is not a valid response class");
         }
 
-
-        $fields = $class::_getFields(true);
+        $fields = $fq_class::_getFields(true);
         $properties = [];
 
         foreach($fields as $field_name => $field_data){
@@ -193,31 +197,32 @@ class FromRoutes extends Parser {
             ];
         }
 
-        $unqualified_class = substr($class, strrpos($class, '\\') + 1);
-        $ref = sprintf('#/definitions/%s', $unqualified_class);
 
-        $this->definitions[$unqualified_class] = [
+        $this->definitions[$class] = [
             'type' => 'object',
             'properties' => $properties
         ];
 
+        $schema = ['ref' => sprintf('#/definitions/%s', $class)];
+
         if($is_array){
             $schema = [
                 'type' => 'array',
-                'items' => [
-                    '$ref' => $ref
-                ]
-            ];
-        } else {
-            $schema = [
-                '$ref' => $ref
+                'items' => $schema
             ];
         }
 
-        return [
-            'description' => "A $unqualified_class object",
-            'schema' => $schema
-        ];
+        if($is_in_var){
+            $schema = [
+                'type' => 'object',
+                'properties' => [$matches['in_var'] => $schema]
+            ];
+        }
+
+        $schema = ['description' => 'A successful request', 'schema' => $schema];
+
+        return $schema;
+
     }
 
     /**

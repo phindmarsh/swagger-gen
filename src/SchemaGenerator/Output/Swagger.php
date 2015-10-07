@@ -67,7 +67,7 @@ class Swagger extends Output {
         static $allowed_keys = [
             'description'
         ];
-        
+
         $output = [
             'x-class' => $operation->class,
             'x-function' => $operation->function,

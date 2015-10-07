@@ -17,6 +17,7 @@ class Operation extends Definition {
     public $method = self::METHOD_GET;
     public $description;
     public $params = array();
+    public $response;
 
     public function __construct($data = null){
 
@@ -75,6 +76,15 @@ class Operation extends Definition {
 
             if(empty($this->params[Parameter::IN_GUESS]))
                 unset($this->params[Parameter::IN_GUESS]);
+        }
+
+    }
+
+    public function addResponse($response) {
+        if(!isset($this->response)){
+            $this->response = $response;
+        } else {
+            $this->response = array_replace_recursive($this->response, $response);
         }
 
     }
