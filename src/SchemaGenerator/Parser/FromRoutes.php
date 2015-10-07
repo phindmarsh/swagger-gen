@@ -112,8 +112,7 @@ class FromRoutes extends Parser {
                 $operations[$route][$method] = $operation;
             }
         }
-        print_r($operations);
-        print_r($this->definitions);
+
         return $operations;
 
     }
@@ -158,12 +157,61 @@ class FromRoutes extends Parser {
 
     private function parseResponseParameter($annotation){
 
-        preg_match('/(?<fq_class>(?<ns>[\w\\\\]+)\\\\(?<class>[\w]+))(?<is_array>\[\])?(\s(?<in_var>[\w]+))?$/', $annotation, $matches);
+        if(preg_match('/(?<fq_class>(?<ns>[\w\\\\]+)\\\\(?<class>[\w]+))(?<is_array>\[\])?(\s(?<in_var>[\w]+))?$/', $annotation, $matches)){
+            $schema = $this->parseModelResponse($annotation, $matches);
+        } elseif(preg_match('/(?<var_type>int|float|string)(?<is_array>\[\])?(\s(?<in_var>[\w]+))?$/', $annotation, $matches)) {
+            //It's primitive
+            $schema = $this->parsePrimitiveResponse($matches);
+        } else {
+            //Whoops!
+            return [];
+        }
 
         $is_array = !empty($matches['is_array']);
+        $in_var = empty($matches['in_var']) ? null : $matches['in_var'];
+
+
+        if($is_array){
+            $schema = [
+                'type' => 'array',
+                'items' => $schema
+            ];
+        }
+
+        if($in_var !== null){
+            $schema = [
+                'type' => 'object',
+                'properties' => [$in_var => $schema]
+            ];
+        }
+
+        return ['description' => 'A successful request', 'schema' => $schema];
+
+    }
+
+    private function parsePrimitiveResponse($matches) {
+
+        switch($matches['var_type']){
+            case 'bool':
+                $type = 'boolean';
+                break;
+            case 'int':
+            case 'float':
+                $type = 'integer';
+                break;
+            case 'string':
+            default:
+                $type = 'string';
+                break;
+        }
+
+        return ['type' => $type];
+    }
+
+    private function parseModelResponse($annotation, $matches){
+
         $fq_class = $matches['fq_class'];
         $class = $matches['class'];
-        $is_in_var = !empty($matches['in_var']);
 
         if(!class_exists($fq_class) || !method_exists($fq_class, '_getFields')){
             throw new \RuntimeException("{$annotation}, is not a valid response class");
@@ -203,27 +251,11 @@ class FromRoutes extends Parser {
             'properties' => $properties
         ];
 
-        $schema = ['ref' => sprintf('#/definitions/%s', $class)];
+        return ['$ref' => sprintf('#/definitions/%s', $class)];
 
-        if($is_array){
-            $schema = [
-                'type' => 'array',
-                'items' => $schema
-            ];
-        }
-
-        if($is_in_var){
-            $schema = [
-                'type' => 'object',
-                'properties' => [$matches['in_var'] => $schema]
-            ];
-        }
-
-        $schema = ['description' => 'A successful request', 'schema' => $schema];
-
-        return $schema;
 
     }
+
 
     /**
      * @param $schema
