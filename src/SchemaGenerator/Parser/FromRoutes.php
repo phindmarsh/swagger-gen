@@ -172,17 +172,11 @@ class FromRoutes extends Parser {
 
 
         if($is_array){
-            $schema = [
-                'type' => 'array',
-                'items' => $schema
-            ];
+            $schema = ['type' => 'array', 'items' => $schema];
         }
 
         if($in_var !== null){
-            $schema = [
-                'type' => 'object',
-                'properties' => [$in_var => $schema]
-            ];
+            $schema = ['type' => 'object', 'properties' => [$in_var => $schema]];
         }
 
         return ['description' => 'A successful request', 'schema' => $schema];
@@ -213,37 +207,75 @@ class FromRoutes extends Parser {
         $fq_class = $matches['fq_class'];
         $class = $matches['class'];
 
-        if(!class_exists($fq_class) || !method_exists($fq_class, '_getFields')){
+        if(!class_exists($fq_class)){
             throw new \RuntimeException("{$annotation}, is not a valid response class");
         }
 
-        $fields = $fq_class::_getFields(true);
         $properties = [];
 
-        foreach($fields as $field_name => $field_data){
+        if(method_exists($fq_class, '_getFields')){
 
-            switch($field_data['data_type']){
-                case Column::TYPE_BOOL:
-                    $type = 'boolean';
-                    break;
-                case Column::TYPE_INT:
-                case Column::TYPE_FLOAT:
-                    $type = 'integer';
-                    break;
-                case Column::TYPE_STRING:
-                case Column::TYPE_DATE:
-                case Column::TYPE_TIMESTAMP:
-                    $type = 'string';
-                    break;
-                default:
-                    //Means that it won't be valid anyway
-                    continue 2;
+            foreach($fq_class::_getFields(true) as $field_name => $field_data){
+
+                switch($field_data['data_type']){
+                    case Column::TYPE_BOOL:
+                        $type = 'boolean';
+                        break;
+                    case Column::TYPE_INT:
+                    case Column::TYPE_FLOAT:
+                        $type = 'integer';
+                        break;
+                    case Column::TYPE_STRING:
+                    case Column::TYPE_DATE:
+                    case Column::TYPE_TIMESTAMP:
+                        $type = 'string';
+                        break;
+                    default:
+                        //Means that it won't be valid anyway
+                        continue 2;
+                }
+
+                $properties[$field_name] = [
+                    'type' => $type
+                ];
             }
 
-            $properties[$field_name] = [
-                'type' => $type
-            ];
+        } else {
+            $rc = new \ReflectionClass($fq_class);
+            foreach($rc->getProperties(\ReflectionProperty::IS_PUBLIC) as $property){
+
+                if(preg_match('/@var\s(?<type>[\w]+)(?<is_array>\[\])?/', $property->getDocComment(), $matches)){
+
+                    switch($matches['type']){
+                        case 'bool':
+                            $type = 'boolean';
+                            break;
+                        case 'int':
+                        case 'float':
+                            $type = 'integer';
+                            break;
+                        case 'string':
+                            $type = 'string';
+                            break;
+                        default:
+                            continue 2;
+                    }
+
+                } else {
+                    $type = 'string';
+                }
+
+                $prop = ['type' => $type];
+
+                if(!empty($matches['type'])){
+                    $prop = ['type' => 'array', 'items' => $prop];
+                }
+
+                $properties[$property->getName()] = $prop;
+            }
         }
+
+
 
 
         $this->definitions[$class] = [
