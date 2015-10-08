@@ -267,7 +267,7 @@ class FromRoutes extends Parser {
 
                 $prop = ['type' => $type];
 
-                if(!empty($matches['type'])){
+                if(!empty($matches['is_array'])){
                     $prop = ['type' => 'array', 'items' => $prop];
                 }
 
