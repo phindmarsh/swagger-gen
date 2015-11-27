@@ -404,6 +404,10 @@ class FromRoutes extends Parser {
             case 'boolean':
                 $parameter['type'] = 'boolean';
                 return;
+            case 'date':
+                $parameter['type'] = 'string';
+                $parameter['format'] = 'date-time';
+                break;
             case 'string':
             case 'email':
                 $parameter['type'] = 'string';
