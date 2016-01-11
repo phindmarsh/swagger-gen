@@ -30,32 +30,15 @@ abstract class {{ class }} extends {{ base_model }} {
 {% endif %}
 {% if operation.parameters.query is not empty or operation.parameters.body is not empty %}
      *
-     * @throws InvalidInputException when required {% if query_params %}$query{% if body_params %} or {% endif %}{% endif %}{% if body_params %}$body{% endif %} params are not present
 {% endif %}
      *
      * @return Response|null
      */
 	public static function {{ operation.function }}({% for param in operation.parameters.path %}${{ param.name }}, {% endfor %}{% if query_params %}array $query = array(){% if body_params %}, {% endif %}{% endif %}{% if body_params %}array $body = array(){% endif %}){
 
-{% for type in ['query', 'body'] %}
-{% if operation.parameters[type] %}
-        static ${{ type }}_params = {{ operation.parameters[type]|var_export(2) }};
-        $errors = [];
-        foreach(${{ type }}_params as $param){
-            if($param['required'] && !array_key_exists($param['name'], ${{ type }})){
-                $errors[] = [ $param['name'] => [ 'reason' => 'missing' ]];
-            }
-        }
-        if(!empty($errors)){
-            throw new InvalidInputException($errors);
-        }
-{% endif %}
-{% endfor %}
+        $route = {% if operation.path_replacements is empty %}'{{ operation.path }}'{% else %}sprintf('{{ operation.path }}', {% for var,index in operation.path_replacements %}${{ var }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %};
 
-        $method = '{{ operation.method }}';
-        $route = sprintf('{{ operation.path }}'{% if operation.path_replacements is not empty %}, {% endif %}{% for var,index in operation.path_replacements %}${{ var }}{% if not loop.last %}, {% endif %}{% endfor %});
-
-        return self::_request('{{ meta['routing-key'] }}', $method, $route, {{ query_params ? '$query' : '[]' }}, {{ body_params ? '$body' : '[]' }});
+        return self::_request('{{ meta['routing-key'] }}', '{{ operation.method }}', $route, {{ query_params ? '$query' : '[]' }}, {{ body_params ? '$body' : '[]' }});
     }
 
 {% endfor %}
