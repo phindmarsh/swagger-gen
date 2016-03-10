@@ -34,11 +34,11 @@ abstract class {{ class }} extends {{ base_model }} {
      *
      * @return Response|null
      */
-	public static function {{ operation.function }}({% for param in operation.parameters.path %}${{ param.name }}, {% endfor %}{% if query_params %}array $query = array(){% if body_params %}, {% endif %}{% endif %}{% if body_params %}array $body = array(){% endif %}){
+	public static function {{ operation.function }}({% for param in operation.parameters.path %}${{ param.name }}, {% endfor %}{% if query_params %}array $query = array(){% if body_params %}, {% endif %}{% endif %}{% if body_params %}array $body = array(){% endif %}, $cache = false){
 
         $route = {% if operation.path_replacements is empty %}'{{ operation.path }}'{% else %}sprintf('{{ operation.path }}', {% for var,index in operation.path_replacements %}${{ var }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %};
 
-        return self::_request('{{ meta['routing-key'] }}', '{{ operation.method }}', $route, {{ query_params ? '$query' : '[]' }}, {{ body_params ? '$body' : '[]' }});
+        return self::_request('{{ meta['routing-key'] }}', '{{ operation.method }}', $route, {{ query_params ? '$query' : '[]' }}, {{ body_params ? '$body' : '[]' }}, $cache);
     }
 
 {% endfor %}
