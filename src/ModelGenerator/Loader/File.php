@@ -21,6 +21,6 @@ class File extends Loader {
     }
 
     public function getContent() {
-        // TODO: Implement getContent() method.
+        return file_get_contents($this->file);
     }
 }
