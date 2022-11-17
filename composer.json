@@ -4,7 +4,7 @@
 
   "require": {
     "phindmarsh/statham": "1.0.*@dev",
-    "twig/twig": "~1.2"
+    "twig/twig": "3.*"
   },
 
   "bin": ["bin/schema-gen", "bin/model-gen"],
