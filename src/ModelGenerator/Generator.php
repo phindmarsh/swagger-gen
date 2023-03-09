@@ -29,7 +29,13 @@ class Generator {
 
         }));
         $this->twig->addFilter(new \Twig_SimpleFilter('print_r', 'print_r'));
-        $this->twig->addFilter(new \Twig_SimpleFilter('explode', function($a, $d){ return explode($d, $a); }));
+        $this->twig->addFilter(new \Twig_SimpleFilter('explode', function($a, $d){ 
+            if ($a === null) {
+                return [""];
+            }
+
+            return explode($d, $a); 
+        }));
     }
 
     public function generate($output_directory, $base_namespace, $base_model_class){
