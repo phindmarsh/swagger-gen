@@ -3,6 +3,10 @@
 
 namespace Wave\SDK\ModelGenerator;
 
+use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
+use Twig\TwigFilter;
+
 class Generator {
 
     private static $defaults = [];
@@ -14,13 +18,13 @@ class Generator {
         $this->input = $input;
         $this->args = array_merge(self::$defaults, $args);
 
-        $loader = new \Twig_Loader_Filesystem(__DIR__ . DS . 'Templates');
-        $this->twig = new \Twig_Environment($loader, array(
+        $loader = new FilesystemLoader(__DIR__ . DS . 'Templates');
+        $this->twig = new Environment($loader, array(
             'autoescape' => false,
             'debug' => true
         ));
 
-        $this->twig->addFilter(new \Twig_SimpleFilter('var_export', function($arg, $indent = 0, $indent_string = '    '){
+        $this->twig->addFilter(new TwigFilter('var_export', function($arg, $indent = 0, $indent_string = '    '){
             $output = var_export($arg, true);
 
             $output = str_replace('  ', $indent_string, $output);
@@ -28,8 +32,8 @@ class Generator {
             return ltrim(preg_replace('/^/m', str_repeat($indent_string, $indent), $output));
 
         }));
-        $this->twig->addFilter(new \Twig_SimpleFilter('print_r', 'print_r'));
-        $this->twig->addFilter(new \Twig_SimpleFilter('explode', function($a, $d){ 
+        $this->twig->addFilter(new TwigFilter('print_r', 'print_r'));
+        $this->twig->addFilter(new TwigFilter('explode', function($a, $d){ 
             if ($a === null) {
                 return [""];
             }
