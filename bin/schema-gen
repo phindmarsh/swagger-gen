@@ -14,10 +14,13 @@ if(!file_exists('bootstrap.php'))
 
 
 $formats = array('json', 'yml', 'php');
-$options = getopt('', array('format::', 'dump-on-error'));
+$options = getopt('', array('format::', 'file::', 'dump-on-error'));
 
 if(!isset($options['format']))
     $options['format'] = 'json';
+
+if(!isset($options['file']))
+    $options['file'] = "swagger.{$options['format']}";
 
 if(!in_array($options['format'], $formats))
     sg_error(sprintf("Unknown output format [%s], accepts: [%s]", $options['format'], implode(', ', $formats)));
@@ -64,21 +67,25 @@ if(!$statham->validate(json_decode(json_encode($output)), $swagger_url)){
         exit(2);
 }
 
+$formatted = '';
 switch($options['format']){
     case 'json':
-        echo json_encode($output, JSON_PRETTY_PRINT);
+        $formatted = json_encode($output, JSON_PRETTY_PRINT);
         break;
     case 'yml':
-        echo Yaml::dump($output, PHP_INT_MAX);
+        $formatted = Yaml::dump($output, PHP_INT_MAX);
         break;
     case 'php':
-        echo var_export($output);
+        $formatted = var_export($output);
         break;
 }
 
-echo "\n";
-exit;
+$result = file_put_contents($options['file'], $formatted);
+if (empty($result)) {
+    sg_error("Failed to write schema to file {$options['file']}");
+}
 
+exit;
 
 function sg_error($message, $exit = 1){
     fwrite(STDERR, "\033[31m{$message}\033[0m\n");
