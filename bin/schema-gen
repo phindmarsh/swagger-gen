@@ -33,21 +33,14 @@ $parser = new FromRoutes($paths->controllers, $paths->schemas, SYS_ROOT . 'docs/
 $generator = new Swagger($parser);
 
 $meta_info = [];
-if(file_exists('composer.json')){
-    $composer = json_decode(file_get_contents('composer.json'));
-    $meta_info = [
-        'title' => $composer->name,
-        'description' => $composer->description
-    ];
+
+// Fetch meta information from the app configuration
+if (Config::get('app')->offsetExists('meta')){
+    $meta_info = Config::get('app')->meta->getArrayCopy();
 }
 
 if('' !== $git_path = trim(shell_exec('which git'))){
     $meta_info['version'] = trim(shell_exec(sprintf('%s rev-parse --verify --short HEAD', $git_path)));
-}
-
-//If there's an AMQP routing key
-if(Config::get('app')->offsetExists('amqp')){
-    $meta_info['routing-key'] = Config::get('app')->amqp->routing_key;
 }
 
 $output = $generator->generate($meta_info);
